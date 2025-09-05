@@ -468,3 +468,37 @@
   )
 )
 
+;; Execute a passed proposal
+(define-public (execute-proposal
+  (proposal-id uint)
+)
+  (let (
+    (proposal (unwrap! (map-get? Proposals { proposal-id: proposal-id }) ERR_INVALID_QUERY))
+  )
+    ;; Verify proposal voting period has ended
+    (asserts! (> stacks-block-height (get end-block proposal)) ERR_PROPOSAL_NOT_ACTIVE)
+    
+    ;; Verify proposal hasn't been executed
+    (asserts! (not (get executed proposal)) ERR_PROPOSAL_NOT_ACTIVE)
+    
+    ;; Verify proposal passed
+    (asserts! (and
+              (> (get votes-for proposal) (get votes-against proposal))
+              (>= (get votes-for proposal) MIN_VOTES_FOR_PROPOSAL))
+             ERR_INSUFFICIENT_REPUTATION)
+    
+    ;; Update network parameter
+    (map-set NetworkParameters
+      { param-key: (get parameter-key proposal) }
+      { value: (get proposed-value proposal) }
+    )
+    
+    ;; Mark proposal as executed
+    (map-set Proposals
+      { proposal-id: proposal-id }
+      (merge proposal { executed: true })
+    )
+    
+    (ok true)
+  )
+)

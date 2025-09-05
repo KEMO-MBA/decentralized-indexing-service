@@ -301,3 +301,30 @@
     claimed: bool
   }
 )
+
+
+(define-map Proposals
+  { proposal-id: uint }
+  {
+    proposer: principal,
+    description-hash: (string-ascii 64),
+    parameter-key: (string-ascii 32),
+    proposed-value: uint,
+    start-block: uint,
+    end-block: uint,
+    votes-for: uint,
+    votes-against: uint,
+    executed: bool
+  }
+)
+
+(define-map ProposalVotes
+  {
+    proposal-id: uint,
+    voter: principal
+  }
+  {
+    vote-amount: uint,
+    for: bool
+  }
+)

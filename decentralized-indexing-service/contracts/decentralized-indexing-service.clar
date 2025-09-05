@@ -385,7 +385,86 @@
     stake-committed: uint
   }
 )
+
 (define-data-var total-subnets uint u0)
 (define-data-var total-data-feeds uint u0)
 (define-data-var total-proposals uint u0)
 (define-data-var total-reward-periods uint u0)
+(define-data-var total-delegations uint u0)
+(define-data-var governance-address principal tx-sender)
+(define-data-var reward-distribution-address principal tx-sender)
+(define-data-var subnet-creation-fee uint SUBNET_CREATION_FEE)
+(define-data-var feed-subscription-fee uint u100)
+(define-data-var proposal-voting-period uint PROPOSAL_VOTING_PERIOD)
+(define-data-var min-votes-for-proposal uint MIN_VOTES_FOR_PROPOSAL)
+(define-data-var reward-claim-period uint REWARD_CLAIM_PERIOD)
+(define-data-var max-delegations-per-node uint MAX_DELEGATIONS_PER_NODE)
+(define-data-var data-feed-expiry-period uint DATA_FEED_EXPIRY_PERIOD)
+(define-data-var delegation-tax-rate uint u5) ;; 5% tax on rewards for delegators
+(define-data-var subnet-node-min-stake uint u10000)
+(define-data-var proposal-quorum uint u500) ;; 500 STX minimum quorum
+(define-data-var proposal-majority uint u600) ;; 60% majority required
+(define-data-var last-reward-distribution-block uint u0)
+(define-data-var total-rewards-distributed uint u0)
+(define-data-var total-subnetworks uint u0)
+(define-data-var total-active-nodes uint u0)
+(define-data-var total-active-delegators uint u0)
+(define-data-var total-governance-votes uint u0)
+(define-data-var total-governance-proposals uint u0)
+(define-data-var total-governance-participants uint u0)
+(define-data-var total-governance-funds uint u0)
+(define-data-var governance-fund-address principal tx-sender)
+(define-data-var governance-fund-balance uint u0)
+(define-data-var governance-fund-withdrawal-limit uint u100000) ;; 100,000 STX
+(define-data-var governance-fund-withdrawn uint u0)
+(define-data-var governance-fund-last-withdrawal-block uint u0)
+(define-data-var governance-fund-approval-rate uint u10) ;; 10% approval
+(define-data-var governance-fund-min-approval uint u1000) ;; 1,000 STX minimum approval
+(define-data-var governance-fund-max-approval uint u10000) ;; 10,000 STX maximum approval
+(define-data-var governance-fund-approval-period uint u1440) ;; 10 days
+(define-data-var governance-fund-approval-count uint u0)
+(define-data-var governance-fund-approval-total uint u0)
+(define-data-var governance-fund-approval-required uint u0)
+(define-data-var governance-fund-approval-votes uint u0)
+(define-data-var governance-fund-approval-participants uint u0)
+(define-data-var governance-fund-approval-proposals uint u0)
+(define-data-var governance-fund-approval-funds uint u0)                    
+(define-data-var governance-fund-approval-address principal tx-sender)
+(define-data-var governance-fund-approval-balance uint u0)
+(define-data-var governance-fund-approval-withdrawal-limit uint u100000) ;;
+
+;; Update node delegation settings
+(define-public (update-delegation-settings
+  (commission-rate uint)
+  (accepting-delegations bool)
+)
+  (let (
+    (node tx-sender)
+    (node-info (unwrap! (map-get? IndexingNodes { node-address: node }) ERR_INVALID_NODE))
+    (delegation-info (default-to 
+                      {
+                        total-delegated: u0,
+                        delegator-count: u0,
+                        commission-rate: u50,
+                        accepting-delegations: true
+                      }
+                      (map-get? NodeDelegationInfo { node-address: node })))
+  )
+    ;; Verify commission rate (max 30%)
+    (asserts! (<= commission-rate u300) ERR_UNAUTHORIZED)
+    
+    ;; Update node delegation info
+    (map-set NodeDelegationInfo
+      { node-address: node }
+      {
+        total-delegated: (get total-delegated delegation-info),
+        delegator-count: (get delegator-count delegation-info),
+        commission-rate: commission-rate,
+        accepting-delegations: accepting-delegations
+      }
+    )
+    
+    (ok true)
+  )
+)
+

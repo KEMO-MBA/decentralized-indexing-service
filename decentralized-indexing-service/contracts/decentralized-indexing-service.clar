@@ -237,3 +237,268 @@
 (define-read-only (get-network-parameter (param-key (string-ascii 32)))
   (map-get? NetworkParameters { param-key: param-key })
 )
+
+;; Error Codes for new features
+(define-constant ERR_DELEGATION_LIMIT_REACHED (err u111))
+(define-constant ERR_INVALID_DELEGATION (err u112))
+(define-constant ERR_REWARD_CLAIM_FAILED (err u113))
+(define-constant ERR_INVALID_REWARD_PERIOD (err u114))
+(define-constant ERR_ALREADY_VOTED (err u115))
+(define-constant ERR_PROPOSAL_EXPIRED (err u116))
+(define-constant ERR_PROPOSAL_NOT_ACTIVE (err u117))
+(define-constant ERR_INVALID_DATA_FEED (err u118))
+(define-constant ERR_FEED_EXISTS (err u119))
+(define-constant ERR_INSUFFICIENT_PERMISSIONS (err u120))
+
+;; Constants for new features
+(define-constant MAX_DELEGATIONS_PER_NODE u10)
+(define-constant REWARD_CLAIM_PERIOD u720) ;; Approximately 5 days
+(define-constant PROPOSAL_VOTING_PERIOD u4320) ;; Approximately 30 days
+(define-constant MIN_VOTES_FOR_PROPOSAL u100)
+(define-constant DATA_FEED_EXPIRY_PERIOD u1440) ;; 10 days
+(define-constant SUBNET_CREATION_FEE u50000)
+
+
+(define-map StakeDelegations
+  {
+    delegator: principal,
+    node: principal
+  }
+  {
+    amount: uint,
+    start-block: uint,
+    last-reward-block: uint,
+    commission-rate: uint
+  }
+)
+
+(define-map NodeDelegationInfo
+  { node-address: principal }
+  {
+    total-delegated: uint,
+    delegator-count: uint,
+    commission-rate: uint,
+    accepting-delegations: bool
+  }
+)
+
+(define-map RewardPeriods
+  { period-id: uint }
+  {
+    start-block: uint,
+    end-block: uint,
+    total-rewards: uint,
+    distributed: bool
+  }
+)
+(define-map NodeRewards
+  {
+    node: principal,
+    period-id: uint
+  }
+  {
+    reward-amount: uint,
+    claimed: bool
+  }
+)
+
+
+(define-map Proposals
+  { proposal-id: uint }
+  {
+    proposer: principal,
+    description-hash: (string-ascii 64),
+    parameter-key: (string-ascii 32),
+    proposed-value: uint,
+    start-block: uint,
+    end-block: uint,
+    votes-for: uint,
+    votes-against: uint,
+    executed: bool
+  }
+)
+
+(define-map ProposalVotes
+  {
+    proposal-id: uint,
+    voter: principal
+  }
+  {
+    vote-amount: uint,
+    for: bool
+  }
+)
+
+(define-map DataFeeds
+  { feed-id: (string-ascii 32) }
+  {
+    provider: principal,
+    data-hash: (string-ascii 64),
+    last-updated: uint,
+    expiry-block: uint,
+    subscribers: uint
+  }
+)
+
+(define-map Subnetworks
+  { subnet-id: (string-ascii 32) }
+  {
+    creator: principal,
+    description-hash: (string-ascii 64),
+    creation-block: uint,
+    member-nodes: uint,
+    active: bool
+  }
+)
+
+(define-map FeedSubscriptions
+  {
+    subscriber: principal,
+    feed-id: (string-ascii 32)
+  }
+  {
+    start-block: uint,
+    subscription-period: uint,
+    total-paid: uint
+  }
+)
+
+(define-map Subnets
+  { subnet-id: (string-ascii 32) }
+  {
+    creator: principal,
+    creation-block: uint,
+    node-count: uint,
+    min-stake-requirement: uint,
+    specialized: bool,
+    topic-hash: (string-ascii 64)
+  }
+)
+
+(define-map SubnetMembership
+  {
+    subnet-id: (string-ascii 32),
+    node: principal
+  }
+  {
+    join-block: uint,
+    stake-committed: uint
+  }
+)
+
+(define-data-var total-subnets uint u0)
+(define-data-var total-data-feeds uint u0)
+(define-data-var total-proposals uint u0)
+(define-data-var total-reward-periods uint u0)
+(define-data-var total-delegations uint u0)
+(define-data-var governance-address principal tx-sender)
+(define-data-var reward-distribution-address principal tx-sender)
+(define-data-var subnet-creation-fee uint SUBNET_CREATION_FEE)
+(define-data-var feed-subscription-fee uint u100)
+(define-data-var proposal-voting-period uint PROPOSAL_VOTING_PERIOD)
+(define-data-var min-votes-for-proposal uint MIN_VOTES_FOR_PROPOSAL)
+(define-data-var reward-claim-period uint REWARD_CLAIM_PERIOD)
+(define-data-var max-delegations-per-node uint MAX_DELEGATIONS_PER_NODE)
+(define-data-var data-feed-expiry-period uint DATA_FEED_EXPIRY_PERIOD)
+(define-data-var delegation-tax-rate uint u5) ;; 5% tax on rewards for delegators
+(define-data-var subnet-node-min-stake uint u10000)
+(define-data-var proposal-quorum uint u500) ;; 500 STX minimum quorum
+(define-data-var proposal-majority uint u600) ;; 60% majority required
+(define-data-var last-reward-distribution-block uint u0)
+(define-data-var total-rewards-distributed uint u0)
+(define-data-var total-subnetworks uint u0)
+(define-data-var total-active-nodes uint u0)
+(define-data-var total-active-delegators uint u0)
+(define-data-var total-governance-votes uint u0)
+(define-data-var total-governance-proposals uint u0)
+(define-data-var total-governance-participants uint u0)
+(define-data-var total-governance-funds uint u0)
+(define-data-var governance-fund-address principal tx-sender)
+(define-data-var governance-fund-balance uint u0)
+(define-data-var governance-fund-withdrawal-limit uint u100000) ;; 100,000 STX
+(define-data-var governance-fund-withdrawn uint u0)
+(define-data-var governance-fund-last-withdrawal-block uint u0)
+(define-data-var governance-fund-approval-rate uint u10) ;; 10% approval
+(define-data-var governance-fund-min-approval uint u1000) ;; 1,000 STX minimum approval
+(define-data-var governance-fund-max-approval uint u10000) ;; 10,000 STX maximum approval
+(define-data-var governance-fund-approval-period uint u1440) ;; 10 days
+(define-data-var governance-fund-approval-count uint u0)
+(define-data-var governance-fund-approval-total uint u0)
+(define-data-var governance-fund-approval-required uint u0)
+(define-data-var governance-fund-approval-votes uint u0)
+(define-data-var governance-fund-approval-participants uint u0)
+(define-data-var governance-fund-approval-proposals uint u0)
+(define-data-var governance-fund-approval-funds uint u0)                    
+(define-data-var governance-fund-approval-address principal tx-sender)
+(define-data-var governance-fund-approval-balance uint u0)
+(define-data-var governance-fund-approval-withdrawal-limit uint u100000) ;;
+
+;; Update node delegation settings
+(define-public (update-delegation-settings
+  (commission-rate uint)
+  (accepting-delegations bool)
+)
+  (let (
+    (node tx-sender)
+    (node-info (unwrap! (map-get? IndexingNodes { node-address: node }) ERR_INVALID_NODE))
+    (delegation-info (default-to 
+                      {
+                        total-delegated: u0,
+                        delegator-count: u0,
+                        commission-rate: u50,
+                        accepting-delegations: true
+                      }
+                      (map-get? NodeDelegationInfo { node-address: node })))
+  )
+    ;; Verify commission rate (max 30%)
+    (asserts! (<= commission-rate u300) ERR_UNAUTHORIZED)
+    
+    ;; Update node delegation info
+    (map-set NodeDelegationInfo
+      { node-address: node }
+      {
+        total-delegated: (get total-delegated delegation-info),
+        delegator-count: (get delegator-count delegation-info),
+        commission-rate: commission-rate,
+        accepting-delegations: accepting-delegations
+      }
+    )
+    
+    (ok true)
+  )
+)
+
+;; Execute a passed proposal
+(define-public (execute-proposal
+  (proposal-id uint)
+)
+  (let (
+    (proposal (unwrap! (map-get? Proposals { proposal-id: proposal-id }) ERR_INVALID_QUERY))
+  )
+    ;; Verify proposal voting period has ended
+    (asserts! (> stacks-block-height (get end-block proposal)) ERR_PROPOSAL_NOT_ACTIVE)
+    
+    ;; Verify proposal hasn't been executed
+    (asserts! (not (get executed proposal)) ERR_PROPOSAL_NOT_ACTIVE)
+    
+    ;; Verify proposal passed
+    (asserts! (and
+              (> (get votes-for proposal) (get votes-against proposal))
+              (>= (get votes-for proposal) MIN_VOTES_FOR_PROPOSAL))
+             ERR_INSUFFICIENT_REPUTATION)
+    
+    ;; Update network parameter
+    (map-set NetworkParameters
+      { param-key: (get parameter-key proposal) }
+      { value: (get proposed-value proposal) }
+    )
+    
+    ;; Mark proposal as executed
+    (map-set Proposals
+      { proposal-id: proposal-id }
+      (merge proposal { executed: true })
+    )
+    
+    (ok true)
+  )
+)

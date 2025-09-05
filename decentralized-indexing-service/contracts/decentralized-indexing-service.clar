@@ -328,3 +328,64 @@
     for: bool
   }
 )
+
+(define-map DataFeeds
+  { feed-id: (string-ascii 32) }
+  {
+    provider: principal,
+    data-hash: (string-ascii 64),
+    last-updated: uint,
+    expiry-block: uint,
+    subscribers: uint
+  }
+)
+
+(define-map Subnetworks
+  { subnet-id: (string-ascii 32) }
+  {
+    creator: principal,
+    description-hash: (string-ascii 64),
+    creation-block: uint,
+    member-nodes: uint,
+    active: bool
+  }
+)
+
+(define-map FeedSubscriptions
+  {
+    subscriber: principal,
+    feed-id: (string-ascii 32)
+  }
+  {
+    start-block: uint,
+    subscription-period: uint,
+    total-paid: uint
+  }
+)
+
+(define-map Subnets
+  { subnet-id: (string-ascii 32) }
+  {
+    creator: principal,
+    creation-block: uint,
+    node-count: uint,
+    min-stake-requirement: uint,
+    specialized: bool,
+    topic-hash: (string-ascii 64)
+  }
+)
+
+(define-map SubnetMembership
+  {
+    subnet-id: (string-ascii 32),
+    node: principal
+  }
+  {
+    join-block: uint,
+    stake-committed: uint
+  }
+)
+(define-data-var total-subnets uint u0)
+(define-data-var total-data-feeds uint u0)
+(define-data-var total-proposals uint u0)
+(define-data-var total-reward-periods uint u0)

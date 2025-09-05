@@ -219,3 +219,21 @@
     (ok true)
 )
 )
+
+;; Read-only Functions
+(define-read-only (get-node-info (node principal))
+  (map-get? IndexingNodes { node-address: node })
+)
+
+(define-read-only (get-network-stats)
+  {
+    total-nodes: (var-get total-nodes),
+    total-staked-amount: (var-get total-staked-amount),
+    total-queries-processed: (var-get total-queries-processed),
+    total-data-indexed: (var-get total-data-indexed)
+  }
+)
+
+(define-read-only (get-network-parameter (param-key (string-ascii 32)))
+  (map-get? NetworkParameters { param-key: param-key })
+)
